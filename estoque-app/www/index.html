@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Estoque Auto UDI</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --card2:#1f232c; --border:#2a2f3a;
+    --text:#eef0f3; --muted:#9aa3b2; --accent:#3b82f6; --green:#22c55e;
+    --yellow:#eab308; --red:#ef4444; --purple:#a855f7;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  body{padding-bottom:70px;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  .hidden{display:none !important;}
+
+  header.app{position:sticky;top:0;z-index:20;background:var(--bg);
+    border-bottom:1px solid var(--border);padding:10px 12px 8px;}
+  header.app h1{font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+  .toprow{display:flex;gap:8px;align-items:center;}
+  .toprow input[type=text]{flex:1;background:var(--card);border:1px solid var(--border);
+    color:var(--text);border-radius:10px;padding:9px 10px;font-size:14px;}
+  .iconbtn{background:var(--card);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;width:40px;height:38px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+  .iconbtn.active{background:var(--accent);border-color:var(--accent);}
+
+  .summary{display:flex;gap:8px;overflow-x:auto;padding:8px 2px 2px;}
+  .chip{background:var(--card2);border:1px solid var(--border);border-radius:10px;
+    padding:6px 10px;font-size:11.5px;white-space:nowrap;color:var(--muted);}
+  .chip b{color:var(--text);font-size:13px;}
+
+  .filters{display:flex;gap:6px;overflow-x:auto;padding:8px 2px;}
+  .filters select{background:var(--card);border:1px solid var(--border);color:var(--text);
+    border-radius:9px;padding:6px 8px;font-size:12.5px;}
+
+  .actions{display:flex;gap:6px;flex-wrap:wrap;padding:6px 2px 4px;}
+  .btn{border-radius:10px;border:1px solid var(--border);background:var(--card);
+    color:var(--text);padding:8px 10px;font-size:12.5px;display:flex;align-items:center;gap:6px;}
+  .btn.primary{background:var(--accent);border-color:var(--accent);}
+  .btn.ghost{background:transparent;}
+  .btn.danger{background:var(--red);border-color:var(--red);}
+  .btn.small{padding:6px 8px;font-size:11.5px;}
+
+  main{padding:8px;}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    overflow:hidden;display:flex;flex-direction:column;position:relative;}
+  .card .thumb{width:100%;aspect-ratio:1/1;background:#11141a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233a4150'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 15.5A1.5 1.5 0 1 1 8 14a1.5 1.5 0 0 1-1.5 1.5zm11 0A1.5 1.5 0 1 1 19 14a1.5 1.5 0 0 1-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E") center/42% no-repeat;
+    background-size:42%;background-repeat:no-repeat;background-position:center;object-fit:cover;}
+  .card .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .badge{position:absolute;top:5px;left:5px;font-size:9.5px;padding:2px 6px;border-radius:7px;
+    color:#fff;font-weight:600;}
+  .badge.disp{background:var(--green);} .badge.res{background:var(--yellow);color:#1a1a1a;}
+  .badge.vend{background:var(--muted);}
+  .dptbadge{position:absolute;top:5px;right:5px;font-size:9.5px;padding:2px 6px;border-radius:7px;
+    background:rgba(0,0,0,.55);color:#fff;}
+  .confbtn{position:absolute;bottom:5px;right:5px;width:26px;height:26px;border-radius:50%;
+    border:1px solid var(--border);background:rgba(10,12,16,.75);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .confbtn.on{background:var(--green);color:#fff;border-color:var(--green);}
+  .cardbody{padding:6px 7px 8px;}
+  .cardbody .placa{font-weight:700;font-size:12.5px;letter-spacing:.5px;}
+  .cardbody .modelo{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cardbody .preco{font-size:12.5px;font-weight:700;color:var(--accent);margin-top:2px;}
+
+  .list{display:flex;flex-direction:column;gap:6px;}
+  .litem{display:flex;gap:10px;background:var(--card);border:1px solid var(--border);
+    border-radius:12px;padding:8px;align-items:center;}
+  .litem .thumb{width:62px;height:62px;border-radius:9px;flex-shrink:0;}
+  .litem .info{flex:1;min-width:0;}
+  .litem .info .placa{font-weight:700;font-size:13px;}
+  .litem .info .modelo{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .litem .info .metarow{display:flex;gap:6px;margin-top:3px;flex-wrap:wrap;}
+
+  .empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:13px;}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;
+    display:flex;align-items:flex-end;}
+  .modal{background:var(--bg);width:100%;max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;
+    padding:14px;border-top:1px solid var(--border);}
+  .modal h2{font-size:16px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;}
+  .closex{background:var(--card);border:1px solid var(--border);color:var(--text);
+    border-radius:50%;width:30px;height:30px;font-size:14px;}
+  .field{margin-bottom:9px;}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:3px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--card);
+    border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px;font-size:13.5px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .section-title{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;
+    margin:14px 0 6px;font-weight:700;}
+  .photos{display:flex;gap:6px;overflow-x:auto;padding:4px 0;}
+  .photos .ph{position:relative;width:70px;height:70px;border-radius:10px;overflow:hidden;
+    border:2px solid transparent;flex-shrink:0;}
+  .photos .ph.cover{border-color:var(--accent);}
+  .photos .ph img{width:100%;height:100%;object-fit:cover;}
+  .photos .ph .del{position:absolute;top:1px;right:1px;background:rgba(0,0,0,.7);color:#fff;
+    border:none;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;}
+  .photos .addph{width:70px;height:70px;border-radius:10px;border:1px dashed var(--border);
+    background:var(--card);display:flex;align-items:center;justify-content:center;font-size:22px;
+    color:var(--muted);flex-shrink:0;}
+  .marginbox{background:var(--card2);border:1px solid var(--border);border-radius:10px;
+    padding:9px 10px;font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+  .marginbox div b{display:block;font-size:14px;}
+  .footer-actions{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap;}
+  .footer-actions .btn{flex:1;justify-content:center;}
+  .confstatus{font-size:12px;padding:8px 10px;border-radius:9px;background:var(--card2);
+    border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#222733;
+    border:1px solid var(--border);color:#fff;padding:9px 16px;border-radius:30px;font-size:12.5px;
+    z-index:80;max-width:90%;text-align:center;}
+
+  #csvInput, #photoInput{display:none;}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <h1>🚗 Estoque Auto <span style="color:var(--accent)">UDI</span></h1>
+  <div class="toprow">
+    <input type="text" id="searchInput" placeholder="Buscar por placa, modelo, marca ou cor...">
+    <button class="iconbtn active" id="modeBtn" title="Modo Cliente / Gestão">👁️</button>
+    <button class="iconbtn" id="viewBtn" title="Alternar visualização">▦</button>
+  </div>
+  <div class="summary" id="summaryBar"></div>
+  <div class="filters">
+    <select id="fStatus"><option value="">Status: todos</option>
+      <option value="Disponível">Disponível</option><option value="Reservado">Reservado</option>
+      <option value="Vendido">Vendido</option></select>
+    <select id="fCategoria"><option value="">Categoria: todas</option>
+      <option>SUV</option><option>Hatch</option><option>Sedan</option>
+      <option>Picape</option><option>Utilitário</option></select>
+    <select id="fConf"><option value="">Conferência: todas</option>
+      <option value="sim">Conferidos</option><option value="nao">Pendentes</option></select>
+    <select id="fOrd"><option value="recente">Mais recentes</option>
+      <option value="dpt_desc">DPT (maior)</option><option value="dpt_asc">DPT (menor)</option>
+      <option value="preco_desc">Preço (maior)</option><option value="preco_asc">Preço (menor)</option></select>
+    <button class="iconbtn" id="udiBtn" title="Priorizar Uberlândia">📍 UDI</button>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="btnAdd">➕ Adicionar carro</button>
+    <button class="btn" id="btnImport">⬆️ Importar CSV</button>
+    <button class="btn ghost" id="btnTemplate">⬇️ Modelo CSV</button>
+  </div>
+</header>
+
+<main>
+  <div id="gridView" class="grid"></div>
+  <div id="listView" class="list hidden"></div>
+  <div id="emptyMsg" class="empty hidden">Nenhum carro cadastrado ainda.<br>Importe um CSV ou adicione manualmente.</div>
+</main>
+
+<input type="file" id="csvInput" accept=".csv">
+<input type="file" id="photoInput" accept="image/*" multiple>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ===================== BANCO (IndexedDB) ===================== */
+const DB_NAME='estoqueAutoDB', DB_VERSION=1, STORE='carros';
+let db;
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        d.createObjectStore(STORE,{keyPath:'placa'});
+      }
+    };
+    req.onsuccess = e=>{ db=e.target.result; resolve(db); };
+    req.onerror = e=>reject(e);
+  });
+}
+function txStore(mode='readonly'){ return db.transaction(STORE,mode).objectStore(STORE); }
+function dbGetAll(){ return new Promise((res,rej)=>{ const r=txStore().getAll(); r.onsuccess=()=>res(r.result); r.onerror=rej; }); }
+function dbPut(car){ return new Promise((res,rej)=>{ const r=txStore('readwrite').put(car); r.onsuccess=()=>res(); r.onerror=rej; }); }
+function dbDelete(placa){ return new Promise((res,rej)=>{ const r=txStore('readwrite').delete(placa); r.onsuccess=()=>res(); r.onerror=rej; }); }
+
+/* ===================== ESTADO ===================== */
+let CARROS = [];
+let modoGestao = true;       // true = mostra custo/margem; false = modo cliente
+let prioridadeUDI = true;
+let viewMode = 'grid';
+let carroEditandoPlaca = null; // placa do carro aberto no modal (ficha)
+
+/* ===================== HELPERS ===================== */
+function normStr(s){
+  return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function normPlaca(s){ return (s||'').toString().toUpperCase().replace(/[\s-]/g,''); }
+function fmtMoney(v){
+  if(v===null||v===undefined||v==='' ||isNaN(v)) return '—';
+  return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+function toast(msg){
+  const el=document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  document.getElementById('toastRoot').appendChild(el);
+  setTimeout(()=>el.remove(),2600);
+}
+function isUdi(car){
+  const p = normStr(car.patio), e = normStr(car.empresa);
+  return p.includes('uberlandia')||p.includes('udi')||e.includes('uberlandia')||e.includes('udi');
+}
+const CATEGORIAS = {
+  SUV:['suv','compass','renegade','tracker','creta','captur','duster','tiggo','corolla cross','corolla-cross','hr-v','hrv','kicks','t-cross','tcross','ecosport','pulse','territory','commander','santa fe','tucson','sportage','outlander','pajero','trailblazer','equinox','xc60','q3','q5','tiguan','tr racker','aircross'],
+  Picape:['picape','pickup','hilux','ranger','s10','toro','amarok','saveiro','strada','montana','oroch','l200','frontier','hoggar','maverick','gladiator'],
+  Sedan:['sedan','corolla','civic','cruze','jetta','virtus','versa','sentra','city','onix plus','prisma','cronos','voyage','siena','accord','camry','passat','a4','c180','320i'],
+  'Utilitário':['utilitario','van','kombi','doblo','fiorino','kangoo','partner','berlingo','master','sprinter','ducato','express','trafic','jumper','bongo']
+};
+function detectarCategoria(modelo){
+  const m = normStr(modelo);
+  for(const cat in CATEGORIAS){
+    if(CATEGORIAS[cat].some(k=>m.includes(normStr(k)))) return cat;
+  }
+  return 'Hatch';
+}
+function calcularStatus(reserva){
+  const r = (reserva||'').toString().trim();
+  if(!r) return 'Disponível';
+  const rn = normStr(r);
+  if(['nao','não','0','n','false'].includes(rn)) return 'Disponível';
+  return 'Reservado';
+}
+
+/* ===================== CSV ===================== */
+function parseCSV(text){
+  // detecta separador pela primeira linha
+  const firstLine = text.split(/\r?\n/)[0];
+  const sep = (firstLine.match(/;/g)||[]).length >= (firstLine.match(/,/g)||[]).length ? ';' : ',';
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+  const headers = lines[0].split(sep).map(h=>normStr(h));
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const cols = lines[i].split(sep);
+    const obj = {};
+    headers.forEach((h,idx)=> obj[h] = (cols[idx]||'').trim());
+    rows.push(obj);
+  }
+  return rows;
+}
+async function importarCSV(file){
+  const text = await file.text();
+  let rows;
+  try{ rows = parseCSV(text); }catch(e){ toast('Erro ao ler o CSV.'); return; }
+  if(!rows.length){ toast('CSV vazio ou inválido.'); return; }
+  const existentes = {};
+  CARROS.forEach(c=> existentes[c.placa]=c );
+  let novos=0, atualizados=0;
+  for(const row of rows){
+    const placaRaw = row.placa || row['placa'];
+    if(!placaRaw) continue;
+    const placa = normPlaca(placaRaw);
+    const modelo = row.modelo || '';
+    const base = existentes[placa];
+    const status = calcularStatus(row.reserva);
+    const categoria = detectarCategoria(modelo);
+    if(base){
+      // mescla: preserva conferência, fotos, observações, valores financeiros já preenchidos
+      base.modelo = modelo || base.modelo;
+      base.anoModelo = row.ano || base.anoModelo;
+      base.km = row.km || base.km;
+      base.cor = row.cor || base.cor;
+      base.marca = row.marca || base.marca;
+      base.empresa = row.empresa || base.empresa;
+      base.patio = row.patio || base.patio;
+      base.dpt = row.dpt || base.dpt;
+      base.reserva = row.reserva || base.reserva;
+      base.status = status;
+      base.categoria = categoria;
+      base.atualizadoEm = Date.now();
+      await dbPut(base);
+      atualizados++;
+    } else {
+      const novo = {
+        placa, modelo, anoModelo: row.ano||'', km: row.km||'', cor: row.cor||'',
+        marca: row.marca||'', empresa: row.empresa||'', patio: row.patio||'',
+        dpt: row.dpt||'', reserva: row.reserva||'', status, categoria,
+        valorFipe:'', custo:'', precoVenda:'', observacoes:'',
+        fotos:[], capaIndex:0, conferido:false, conferidoEm:null,
+        criadoEm: Date.now(), atualizadoEm: Date.now()
+      };
+      await dbPut(novo);
+      novos++;
+    }
+  }
+  await carregarCarros();
+  toast(`Importação concluída: ${novos} novo(s), ${atualizados} atualizado(s).`);
+}
+function baixarModeloCSV(){
+  const header = 'reserva;modelo;placa;ano;km;cor;tabela;marca;empresa;patio;dpt';
+  const exemplo = 'NAO;ONIX LT 1.0;ABC1D23;2022;35000;PRATA;;CHEVROLET;MATRIZ;UBERLANDIA;12';
+  const blob = new Blob([header+'\n'+exemplo], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='modelo_estoque.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ===================== FOTOS ===================== */
+function comprimirImagem(file, maxSize=1024, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let {width,height} = img;
+        if(width>height && width>maxSize){ height = height*(maxSize/width); width=maxSize; }
+        else if(height>maxSize){ width = width*(maxSize/height); height=maxSize; }
+        const canvas = document.createElement('canvas');
+        canvas.width=width; canvas.height=height;
+        canvas.getContext('2d').drawImage(img,0,0,width,height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ===================== CARREGAR / RENDER ===================== */
+async function carregarCarros(){
+  CARROS = await dbGetAll();
+  render();
+}
+function getFiltrados(){
+  const q = normStr(document.getElementById('searchInput').value);
+  const fStatus = document.getElementById('fStatus').value;
+  const fCat = document.getElementById('fCategoria').value;
+  const fConf = document.getElementById('fConf').value;
+  const fOrd = document.getElementById('fOrd').value;
+
+  let lista = CARROS.filter(c=>{
+    if(prioridadeUDI && !isUdi(c)) return false;
+    if(fStatus && c.status!==fStatus) return false;
+    if(fCat && c.categoria!==fCat) return false;
+    if(fConf==='sim' && !c.conferido) return false;
+    if(fConf==='nao' && c.conferido) return false;
+    if(q){
+      const alvo = normStr(c.placa+' '+c.modelo+' '+c.marca+' '+c.cor);
+      if(!alvo.includes(q)) return false;
+    }
+    return true;
+  });
+  lista.sort((a,b)=>{
+    if(fOrd==='dpt_desc') return (Number(b.dpt)||0)-(Number(a.dpt)||0);
+    if(fOrd==='dpt_asc') return (Number(a.dpt)||0)-(Number(b.dpt)||0);
+    if(fOrd==='preco_desc') return (Number(b.precoVenda)||0)-(Number(a.precoVenda)||0);
+    if(fOrd==='preco_asc') return (Number(a.precoVenda)||0)-(Number(b.precoVenda)||0);
+    return (b.atualizadoEm||0)-(a.atualizadoEm||0);
+  });
+  return lista;
+}
+function renderSummary(listaBase){
+  const total = listaBase.length;
+  const disp = listaBase.filter(c=>c.status==='Disponível').length;
+  const res = listaBase.filter(c=>c.status==='Reservado').length;
+  const vend = listaBase.filter(c=>c.status==='Vendido').length;
+  const conf = listaBase.filter(c=>c.conferido).length;
+  let html = `
+    <div class="chip"><b>${total}</b> no filtro</div>
+    <div class="chip"><b>${disp}</b> disponíveis</div>
+    <div class="chip"><b>${res}</b> reservados</div>
+    <div class="chip"><b>${vend}</b> vendidos</div>
+    <div class="chip"><b>${conf}</b> conferidos</div>`;
+  if(modoGestao){
+    const margemTotal = listaBase.reduce((s,c)=>{
+      const custo=Number(c.custo)||0, pv=Number(c.precoVenda)||0;
+      return s + (pv && custo ? (pv-custo) : 0);
+    },0);
+    html += `<div class="chip">Margem total <b>${fmtMoney(margemTotal)}</b></div>`;
+  }
+  document.getElementById('summaryBar').innerHTML = html;
+}
+function statusBadgeClass(s){
+  if(s==='Disponível') return 'disp'; if(s==='Reservado') return 'res'; return 'vend';
+}
+function renderCard(c){
+  const foto = c.fotos && c.fotos[c.capaIndex||0];
+  return `
+  <div class="card" data-placa="${c.placa}">
+    <div class="thumb">${foto?`<img src="${foto}">`:''}</div>
+    <span class="badge ${statusBadgeClass(c.status)}">${c.status}</span>
+    <span class="dptbadge">${c.dpt||0}d</span>
+    <button class="confbtn ${c.conferido?'on':''}" data-conf="${c.placa}">${c.conferido?'✓':'○'}</button>
+    <div class="cardbody">
+      <div class="placa">${c.placa}</div>
+      <div class="modelo">${c.marca||''} ${c.modelo||''}</div>
+      <div class="preco">${fmtMoney(c.precoVenda)}</div>
+    </div>
+  </div>`;
+}
+function renderListItem(c){
+  const foto = c.fotos && c.fotos[c.capaIndex||0];
+  return `
+  <div class="litem" data-placa="${c.placa}">
+    <div class="thumb" style="border-radius:9px;overflow:hidden;background:#11141a;">${foto?`<img src="${foto}" style="width:100%;height:100%;object-fit:cover;">`:''}</div>
+    <div class="info">
+      <div class="placa">${c.placa} <span style="color:var(--muted);font-weight:400;">· ${c.categoria}</span></div>
+      <div class="modelo">${c.marca||''} ${c.modelo||''} · ${c.anoModelo||'-'} · ${c.cor||'-'}</div>
+      <div class="metarow">
+        <span class="badge ${statusBadgeClass(c.status)}" style="position:static;">${c.status}</span>
+        <span class="dptbadge" style="position:static;">${c.dpt||0}d pátio</span>
+        ${c.conferido?'<span class="dptbadge" style="position:static;background:var(--green);">✓ conferido</span>':''}
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="preco" style="color:var(--accent);font-weight:700;">${fmtMoney(c.precoVenda)}</div>
+      <button class="confbtn ${c.conferido?'on':''}" data-conf="${c.placa}" style="position:static;margin-top:4px;">${c.conferido?'✓':'○'}</button>
+    </div>
+  </div>`;
+}
+function render(){
+  const lista = getFiltrados();
+  renderSummary(lista);
+  const gridEl = document.getElementById('gridView');
+  const listEl = document.getElementById('listView');
+  const emptyEl = document.getElementById('emptyMsg');
+  emptyEl.classList.toggle('hidden', lista.length>0);
+  gridEl.classList.toggle('hidden', viewMode!=='grid' || lista.length===0);
+  listEl.classList.toggle('hidden', viewMode!=='list' || lista.length===0);
+  gridEl.innerHTML = lista.map(renderCard).join('');
+  listEl.innerHTML = lista.map(renderListItem).join('');
+  document.querySelectorAll('[data-placa]').forEach(el=>{
+    el.addEventListener('click', ev=>{
+      if(ev.target.closest('[data-conf]')) return;
+      abrirFicha(el.dataset.placa);
+    });
+  });
+  document.querySelectorAll('[data-conf]').forEach(el=>{
+    el.addEventListener('click', async ev=>{
+      ev.stopPropagation();
+      const placa = el.dataset.conf;
+      const car = CARROS.find(c=>c.placa===placa);
+      car.conferido = !car.conferido;
+      car.conferidoEm = car.conferido ? Date.now() : null;
+      await dbPut(car);
+      await carregarCarros();
+    });
+  });
+}
+
+/* ===================== MODAL: FICHA / CADASTRO ===================== */
+function fecharModal(){ document.getElementById('modalRoot').innerHTML=''; carroEditandoPlaca=null; }
+
+function abrirFicha(placa){
+  const car = CARROS.find(c=>c.placa===placa);
+  if(!car) return;
+  carroEditandoPlaca = placa;
+  renderFichaModal(car, false);
+}
+function abrirNovo(){
+  const novo = {
+    placa:'', modelo:'', anoModelo:'', km:'', cor:'', marca:'', empresa:'', patio:'',
+    dpt:'', status:'Disponível', categoria:'Hatch', valorFipe:'', custo:'', precoVenda:'',
+    observacoes:'', fotos:[], capaIndex:0, conferido:false, conferidoEm:null
+  };
+  carroEditandoPlaca = null;
+  renderFichaModal(novo, true);
+}
+
+function renderFichaModal(car, isNovo){
+  const margemReais = (Number(car.precoVenda)||0) - (Number(car.custo)||0);
+  const margemPct = Number(car.custo) ? (margemReais/Number(car.custo)*100) : null;
+  const diffFipe = (car.valorFipe && car.precoVenda) ? (Number(car.precoVenda)-Number(car.valorFipe)) : null;
+
+  const fotosHtml = (car.fotos||[]).map((f,i)=>`
+    <div class="ph ${i===(car.capaIndex||0)?'cover':''}" data-setcover="${i}">
+      <img src="${f}"><button class="del" data-delfoto="${i}">✕</button>
+    </div>`).join('');
+
+  const html = `
+  <div class="modal-overlay" id="overlayFicha">
+    <div class="modal">
+      <h2>${isNovo?'Adicionar carro':'Ficha do veículo'} <button class="closex" id="closeFicha">✕</button></h2>
+
+      ${!isNovo?`
+      <div class="confstatus">
+        <span>${car.conferido? '✅ Conferido fisicamente'+(car.conferidoEm?(' em '+new Date(car.conferidoEm).toLocaleString('pt-BR')):'') : '⏳ Ainda não conferido no pátio'}</span>
+        <button class="btn small ${car.conferido?'':'primary'}" id="toggleConf">${car.conferido?'Desmarcar':'Confirmar'}</button>
+      </div>`:''}
+
+      <div class="section-title">Dados do veículo</div>
+      <div class="row2">
+        <div class="field"><label>Placa *</label><input id="f_placa" value="${car.placa}" ${isNovo?'':'readonly'} style="${isNovo?'':'opacity:.7'}"></div>
+        <div class="field"><label>Marca</label><input id="f_marca" value="${car.marca||''}"></div>
+      </div>
+      <div class="field"><label>Modelo</label><input id="f_modelo" value="${car.modelo||''}"></div>
+      <div class="row3">
+        <div class="field"><label>Ano/Modelo</label><input id="f_ano" value="${car.anoModelo||''}"></div>
+        <div class="field"><label>Cor</label><input id="f_cor" value="${car.cor||''}"></div>
+        <div class="field"><label>KM</label><input id="f_km" value="${car.km||''}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Categoria</label>
+          <select id="f_categoria">
+            ${['SUV','Hatch','Sedan','Picape','Utilitário'].map(c=>`<option ${car.categoria===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Status</label>
+          <select id="f_status">
+            ${['Disponível','Reservado','Vendido'].map(s=>`<option ${car.status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Empresa</label><input id="f_empresa" value="${car.empresa||''}"></div>
+        <div class="field"><label>Pátio</label><input id="f_patio" value="${car.patio||''}"></div>
+      </div>
+      <div class="field"><label>Dias de pátio (DPT)</label><input id="f_dpt" value="${car.dpt||''}" inputmode="numeric"></div>
+
+      <div class="section-title">Fotos (até 10)</div>
+      <div class="photos" id="photosRow">
+        ${fotosHtml}
+        ${(car.fotos||[]).length<10?`<div class="addph" id="addFotoBtn">+</div>`:''}
+      </div>
+
+      <div class="section-title">Valores ${modoGestao?'':'<span style="color:var(--muted);font-weight:400;">(modo cliente: custo/margem ocultos)</span>'}</div>
+      <div class="row3">
+        <div class="field"><label>Valor FIPE</label><input id="f_fipe" value="${car.valorFipe||''}" inputmode="decimal"></div>
+        <div class="field ${modoGestao?'':'hidden'}"><label>Custo</label><input id="f_custo" value="${car.custo||''}" inputmode="decimal"></div>
+        <div class="field"><label>Preço de venda</label><input id="f_preco" value="${car.precoVenda||''}" inputmode="decimal"></div>
+      </div>
+      <div class="marginbox ${modoGestao?'':'hidden'}" id="marginBox">
+        <div>Margem R$<b style="color:${margemReais>=0?'var(--green)':'var(--red)'}">${fmtMoney(margemReais)}</b></div>
+        <div>Margem %<b>${margemPct!==null?margemPct.toFixed(1)+'%':'—'}</b></div>
+        <div>Dif. FIPE<b>${diffFipe!==null?fmtMoney(diffFipe):'—'}</b></div>
+      </div>
+
+      <div class="field ${modoGestao?'':'hidden'}"><label>Observações internas</label>
+        <textarea id="f_obs" rows="3">${car.observacoes||''}</textarea></div>
+
+      <div class="footer-actions">
+        <button class="btn primary" id="btnSalvar">💾 Salvar</button>
+        ${!isNovo?`<button class="btn" id="btnWhats">📋 Copiar p/ WhatsApp</button>`:''}
+        ${!isNovo?`<button class="btn danger" id="btnExcluir">🗑️ Excluir</button>`:''}
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').innerHTML = html;
+
+  document.getElementById('closeFicha').onclick = fecharModal;
+  document.getElementById('overlayFicha').addEventListener('click', e=>{ if(e.target.id==='overlayFicha') fecharModal(); });
+
+  if(!isNovo){
+    document.getElementById('toggleConf').onclick = async ()=>{
+      car.conferido = !car.conferido;
+      car.conferidoEm = car.conferido?Date.now():null;
+      await dbPut(car); await carregarCarros(); renderFichaModal(car,false);
+    };
+    document.getElementById('btnWhats').onclick = ()=>copiarWhatsApp(car);
+    document.getElementById('btnExcluir').onclick = async ()=>{
+      if(confirm('Excluir este veículo do estoque?')){
+        await dbDelete(car.placa); await carregarCarros(); fecharModal();
+        toast('Veículo excluído.');
+      }
+    };
+  }
+
+  // fotos
+  const addBtn = document.getElementById('addFotoBtn');
+  if(addBtn) addBtn.onclick = ()=>{
+    const inp = document.getElementById('photoInput');
+    inp.onchange = async ()=>{
+      const files = Array.from(inp.files).slice(0, 10-(car.fotos||[]).length);
+      for(const file of files){
+        try{
+          const dataUrl = await comprimirImagem(file);
+          car.fotos = car.fotos||[];
+          car.fotos.push(dataUrl);
+        }catch(e){ console.error(e); }
+      }
+      await dbPut(car);
+      inp.value='';
+      renderFichaModal(car, isNovo);
+    };
+    inp.click();
+  };
+  document.querySelectorAll('[data-delfoto]').forEach(b=>{
+    b.onclick = async (e)=>{
+      e.stopPropagation();
+      const idx = Number(b.dataset.delfoto);
+      car.fotos.splice(idx,1);
+      if(car.capaIndex>=car.fotos.length) car.capaIndex=0;
+      await dbPut(car);
+      renderFichaModal(car, isNovo);
+    };
+  });
+  document.querySelectorAll('[data-setcover]').forEach(el=>{
+    el.onclick = async ()=>{
+      car.capaIndex = Number(el.dataset.setcover);
+      await dbPut(car);
+      renderFichaModal(car, isNovo);
+    };
+  });
+
+  // recalcular margem ao digitar
+  ['f_custo','f_preco','f_fipe'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', ()=>{
+      const custo = Number(document.getElementById('f_custo') ? document.getElementById('f_custo').value : car.custo) || 0;
+      const preco = Number(document.getElementById('f_preco').value) || 0;
+      const fipe = Number(document.getElementById('f_fipe').value) || 0;
+      const mr = preco-custo;
+      const mp = custo?(mr/custo*100):null;
+      const df = (fipe&&preco)?(preco-fipe):null;
+      const box = document.getElementById('marginBox');
+      if(box) box.innerHTML = `
+        <div>Margem R$<b style="color:${mr>=0?'var(--green)':'var(--red)'}">${fmtMoney(mr)}</b></div>
+        <div>Margem %<b>${mp!==null?mp.toFixed(1)+'%':'—'}</b></div>
+        <div>Dif. FIPE<b>${df!==null?fmtMoney(df):'—'}</b></div>`;
+    });
+  });
+
+  document.getElementById('btnSalvar').onclick = async ()=>{
+    const placaVal = normPlaca(document.getElementById('f_placa').value);
+    if(!placaVal){ toast('Informe a placa.'); return; }
+    if(isNovo && CARROS.some(c=>c.placa===placaVal)){ toast('Já existe um veículo com essa placa.'); return; }
+    const atualizado = {
+      ...car,
+      placa: placaVal,
+      marca: document.getElementById('f_marca').value,
+      modelo: document.getElementById('f_modelo').value,
+      anoModelo: document.getElementById('f_ano').value,
+      cor: document.getElementById('f_cor').value,
+      km: document.getElementById('f_km').value,
+      categoria: document.getElementById('f_categoria').value,
+      status: document.getElementById('f_status').value,
+      empresa: document.getElementById('f_empresa').value,
+      patio: document.getElementById('f_patio').value,
+      dpt: document.getElementById('f_dpt').value,
+      valorFipe: document.getElementById('f_fipe').value,
+      custo: document.getElementById('f_custo') ? document.getElementById('f_custo').value : (car.custo||''),
+      precoVenda: document.getElementById('f_preco').value,
+      observacoes: document.getElementById('f_obs') ? document.getElementById('f_obs').value : (car.observacoes||''),
+      criadoEm: car.criadoEm || Date.now(),
+      atualizadoEm: Date.now()
+    };
+    await dbPut(atualizado);
+    await carregarCarros();
+    fecharModal();
+    toast('Veículo salvo com sucesso.');
+  };
+}
+
+function copiarWhatsApp(car){
+  const linhas = [
+    `🚗 *${car.marca||''} ${car.modelo||''}*`,
+    `Placa: ${car.placa}`,
+    `Ano/Modelo: ${car.anoModelo||'-'}`,
+    `Cor: ${car.cor||'-'}`,
+    `KM: ${car.km||'-'}`,
+    `Categoria: ${car.categoria||'-'}`,
+    `Status: ${car.status}`,
+    car.valorFipe?`Tabela FIPE: ${fmtMoney(car.valorFipe)}`:null,
+    `💰 Preço: ${fmtMoney(car.precoVenda)}`,
+    `📍 Pátio: ${car.patio||'-'}`
+  ].filter(Boolean).join('\n');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(linhas).then(()=>toast('Ficha copiada! Cole no WhatsApp.'))
+      .catch(()=>fallbackCopy(linhas));
+  } else fallbackCopy(linhas);
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+  ta.select(); document.execCommand('copy'); ta.remove();
+  toast('Ficha copiada! Cole no WhatsApp.');
+}
+
+/* ===================== EVENTOS GERAIS ===================== */
+document.getElementById('searchInput').addEventListener('input', render);
+['fStatus','fCategoria','fConf','fOrd'].forEach(id=>document.getElementById(id).addEventListener('change', render));
+document.getElementById('modeBtn').addEventListener('click', ()=>{
+  modoGestao = !modoGestao;
+  const btn = document.getElementById('modeBtn');
+  btn.textContent = modoGestao?'👁️':'🙈';
+  btn.classList.toggle('active', modoGestao);
+  toast(modoGestao?'Modo Gestão ativado':'Modo Cliente ativado (custo e margem ocultos)');
+});
+document.getElementById('viewBtn').addEventListener('click', ()=>{
+  viewMode = viewMode==='grid'?'list':'grid';
+  document.getElementById('viewBtn').textContent = viewMode==='grid'?'▦':'☰';
+  render();
+});
+document.getElementById('udiBtn').addEventListener('click', ()=>{
+  prioridadeUDI = !prioridadeUDI;
+  document.getElementById('udiBtn').classList.toggle('active', prioridadeUDI);
+  toast(prioridadeUDI?'Priorizando veículos de Uberlândia':'Mostrando veículos de todos os pátios');
+  render();
+});
+document.getElementById('btnAdd').addEventListener('click', abrirNovo);
+document.getElementById('btnImport').addEventListener('click', ()=>document.getElementById('csvInput').click());
+document.getElementById('csvInput').addEventListener('change', async e=>{
+  if(e.target.files[0]) await importarCSV(e.target.files[0]);
+  e.target.value='';
+});
+document.getElementById('btnTemplate').addEventListener('click', baixarModeloCSV);
+
+/* ===================== INIT ===================== */
+(async function init(){
+  await openDB();
+  await carregarCarros();
+  document.getElementById('udiBtn').classList.add('active');
+})();
+</script>
+</body>
+</html>
